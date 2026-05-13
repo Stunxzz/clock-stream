@@ -7,8 +7,9 @@ from sqlalchemy import select
 from pathlib import Path
 
 from database import get_db
-from models import Location, Break
+from models import Location, Break, User
 from translations import get_t, SUPPORTED_LANGS
+from routers.auth import get_current_user, get_initials
 
 router = APIRouter()
 templates = Jinja2Templates(directory=Path(__file__).parent.parent / "templates")
@@ -18,6 +19,11 @@ _TIME_RE = re.compile(r'^([01]\d|2[0-3]):[0-5]\d$')
 
 def _lang(lang: str = Cookie(default="bg")) -> str:
     return lang if lang in SUPPORTED_LANGS else "bg"
+
+
+def _ctx(current_user: User, lang: str) -> dict:
+    """Shared template context for all admin pages."""
+    return {"t": get_t(lang), "lang": lang, "current_user": current_user, "user_initials": get_initials(current_user.username)}
 
 
 # ── Language switcher ────────────────────────────────────────────────────────
@@ -33,24 +39,35 @@ def set_lang(code: str, request: Request):
 # ── Admin pages ──────────────────────────────────────────────────────────────
 
 @router.get("/", response_class=HTMLResponse)
-def admin_index(request: Request, db: Session = Depends(get_db), lang: str = Depends(_lang)):
+def admin_index(
+    request: Request,
+    db: Session = Depends(get_db),
+    lang: str = Depends(_lang),
+    current_user: User = Depends(get_current_user),
+):
     locations = db.scalars(
         select(Location).options(selectinload(Location.breaks))
     ).all()
-    return templates.TemplateResponse("index.html", {
-        "request": request, "locations": locations, "t": get_t(lang), "lang": lang,
-    })
+    return templates.TemplateResponse("index.html", {"request": request, "locations": locations, **_ctx(current_user, lang)})
 
 
 @router.post("/locations")
-def create_location(name: str = Form(...), db: Session = Depends(get_db), lang: str = Depends(_lang)):
+def create_location(
+    name: str = Form(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     db.add(Location(name=name.strip()))
     db.commit()
     return RedirectResponse("/", status_code=303)
 
 
 @router.post("/locations/{location_id}/delete")
-def delete_location(location_id: int, db: Session = Depends(get_db)):
+def delete_location(
+    location_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     location = db.get(Location, location_id)
     if location:
         db.delete(location)
@@ -59,15 +76,19 @@ def delete_location(location_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/locations/{location_id}", response_class=HTMLResponse)
-def location_detail(location_id: int, request: Request, db: Session = Depends(get_db), lang: str = Depends(_lang)):
+def location_detail(
+    location_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    lang: str = Depends(_lang),
+    current_user: User = Depends(get_current_user),
+):
     location = db.scalar(
         select(Location).where(Location.id == location_id).options(selectinload(Location.breaks))
     )
     if not location:
         raise HTTPException(status_code=404, detail="Location not found")
-    return templates.TemplateResponse("location.html", {
-        "request": request, "location": location, "t": get_t(lang), "lang": lang,
-    })
+    return templates.TemplateResponse("location.html", {"request": request, "location": location, **_ctx(current_user, lang)})
 
 
 @router.post("/locations/{location_id}/breaks")
@@ -79,6 +100,7 @@ def add_break(
     end_time: str = Form(...),
     db: Session = Depends(get_db),
     lang: str = Depends(_lang),
+    current_user: User = Depends(get_current_user),
 ):
     location = db.scalar(
         select(Location).where(Location.id == location_id).options(selectinload(Location.breaks))
@@ -101,10 +123,9 @@ def add_break(
             {
                 "request": request,
                 "location": location,
-                "t": t,
-                "lang": lang,
                 "break_error": error,
                 "break_form": {"name": name, "start_time": start_time, "end_time": end_time},
+                **_ctx(current_user, lang),
             },
             status_code=422,
         )
@@ -115,7 +136,11 @@ def add_break(
 
 
 @router.post("/breaks/{break_id}/delete")
-def delete_break(break_id: int, db: Session = Depends(get_db)):
+def delete_break(
+    break_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     b = db.get(Break, break_id)
     if not b:
         raise HTTPException(status_code=404)
@@ -126,10 +151,14 @@ def delete_break(break_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/clock/{location_id}", response_class=HTMLResponse)
-def clock_view(location_id: int, request: Request, db: Session = Depends(get_db), lang: str = Depends(_lang)):
+def clock_view(
+    location_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    lang: str = Depends(_lang),
+):
+    # Публичен — работниците виждат часовника без логин
     location = db.get(Location, location_id)
     if not location:
         raise HTTPException(status_code=404)
-    return templates.TemplateResponse("clock.html", {
-        "request": request, "location": location, "t": get_t(lang), "lang": lang,
-    })
+    return templates.TemplateResponse("clock.html", {"request": request, "location": location, "t": get_t(lang), "lang": lang})
