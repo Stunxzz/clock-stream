@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ location.name }} — {{ t.app_name }}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <style>
+    body { background: #f0f2f5; }
+    .navbar-brand { font-weight: 700; letter-spacing: .3px; }
+    .avatar {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff; font-size: .72rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; letter-spacing: .5px;
+    }
+    .user-btn {
+      background: none; border: none;
+      display: flex; align-items: center; gap: .6rem;
+      color: rgba(255,255,255,.85); cursor: pointer;
+      padding: .25rem .5rem; border-radius: 8px; transition: background .15s;
+    }
+    .user-btn:hover { background: rgba(255,255,255,.1); color: #fff; }
+    .card { border: none; border-radius: 14px; box-shadow: 0 1px 6px rgba(0,0,0,.08); }
+    .card-header {
+      background: none; border-bottom: 1px solid #e9ecef;
+      padding: 1.1rem 1.4rem; font-weight: 700; font-size: 1rem;
+    }
+    .card-body { padding: 1.4rem; }
+    .color-dot { width: 13px; height: 13px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+    .break-row:last-child td { border-bottom: 0; }
+    .time-pill {
+      background: #f1f5f9; border-radius: 6px; padding: .22rem .6rem;
+      font-family: monospace; font-weight: 700; font-size: .92rem;
+      color: #1e293b; display: inline-block;
+    }
+    .btn-clock-outline { border-color: #0ea5e9; color: #0ea5e9; }
+    .btn-clock-outline:hover { background: #0ea5e9; color: #fff; }
+    .modal-content { border-radius: 14px; border: none; }
+  </style>
+</head>
+<body>
+
+{% include '_navbar.html' %}
+
+<div class="container-fluid px-3 px-lg-5 py-4">
+
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+    <div>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1" style="font-size:.85rem">
+          <li class="breadcrumb-item"><a href="/" class="text-decoration-none">{{ t.breadcrumb_locations }}</a></li>
+          <li class="breadcrumb-item active">{{ location.name }}</li>
+        </ol>
+      </nav>
+      <h4 class="fw-bold mb-0">{{ location.name }}</h4>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="/clock/{{ location.id }}" target="_blank" class="btn btn-clock-outline">
+        {{ t.btn_open_clock }}
+      </a>
+      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addBreakModal">
+        {{ t.btn_add_break }}
+      </button>
+    </div>
+  </div>
+
+  <div class="row g-4">
+
+    <!-- Breaks table -->
+    <div class="col-12 col-lg-8">
+      <div class="card h-100">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <span>{{ t.card_breaks_title }}</span>
+          <span class="badge bg-secondary rounded-pill">{{ location.breaks | length }}</span>
+        </div>
+        <div class="card-body p-0">
+          {% if location.breaks %}
+          <div class="table-responsive">
+            <table class="table align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th style="padding-left:1.4rem">{{ t.col_name }}</th>
+                  <th>{{ t.col_start }}</th>
+                  <th>{{ t.col_end }}</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for b in location.breaks %}
+                <tr class="break-row">
+                  <td style="padding-left:1.4rem; font-weight:600">{{ b.name }}</td>
+                  <td><span class="time-pill">{{ b.start_time }}</span></td>
+                  <td><span class="time-pill">{{ b.end_time }}</span></td>
+                  <td class="text-end pe-3">
+                    <form method="POST" action="/breaks/{{ b.id }}/delete"
+                          onsubmit="return confirm('{{ t.btn_delete }} {{ b.name }}?')">
+                      <button type="submit" class="btn btn-sm btn-outline-danger">{{ t.btn_delete }}</button>
+                    </form>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center text-muted py-5">
+            <p class="mb-2">{{ t.empty_breaks_text }}</p>
+            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addBreakModal">
+              {{ t.btn_add_break }}
+            </button>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-12 col-lg-4 d-flex flex-column gap-4">
+      <div class="card">
+        <div class="card-header">{{ t.legend_title }}</div>
+        <div class="card-body d-flex flex-column gap-3">
+          <div class="d-flex align-items-start gap-3">
+            <span class="color-dot mt-1" style="background:#16a34a"></span>
+            <div>
+              <div class="fw-semibold" style="font-size:.9rem">{{ t.legend_green_title }}</div>
+              <div class="text-muted" style="font-size:.82rem">{{ t.legend_green_desc }}</div>
+            </div>
+          </div>
+          <div class="d-flex align-items-start gap-3">
+            <span class="color-dot mt-1" style="background:#d97706"></span>
+            <div>
+              <div class="fw-semibold" style="font-size:.9rem">{{ t.legend_yellow_title }}</div>
+              <div class="text-muted" style="font-size:.82rem">{{ t.legend_yellow_desc }}</div>
+            </div>
+          </div>
+          <div class="d-flex align-items-start gap-3">
+            <span class="color-dot mt-1" style="background:#dc2626"></span>
+            <div>
+              <div class="fw-semibold" style="font-size:.9rem">{{ t.legend_red_title }}</div>
+              <div class="text-muted" style="font-size:.82rem">{{ t.legend_red_desc }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card text-center">
+        <div class="card-body py-4">
+          <p class="text-muted mb-3" style="font-size:.88rem">{{ t.clock_card_text }}</p>
+          <a href="/clock/{{ location.id }}" target="_blank" class="btn btn-success w-100">
+            {{ t.btn_open_clock }}
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ADD BREAK MODAL -->
+<div class="modal fade" id="addBreakModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold">{{ t.modal_new_break_title }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="addBreakForm" method="POST" action="/locations/{{ location.id }}/breaks" novalidate>
+        <div class="modal-body pt-3 d-flex flex-column gap-3">
+
+          {% if break_error %}
+          <div class="alert alert-danger py-2 mb-0" role="alert" style="font-size:.88rem">
+            {{ break_error }}
+          </div>
+          {% endif %}
+
+          <div>
+            <label class="form-label fw-semibold" for="breakName">{{ t.form_break_name_label }}</label>
+            <input id="breakName" type="text" name="name" class="form-control"
+                   placeholder="{{ t.form_break_name_placeholder }}"
+                   value="{{ break_form.name if break_form else '' }}" required>
+          </div>
+          <div class="row g-3">
+            <div class="col-6">
+              <label class="form-label fw-semibold" for="startTime">{{ t.form_start_label }}</label>
+              <input id="startTime" type="text" name="start_time"
+                     class="form-control font-monospace time-input"
+                     placeholder="HH:MM" maxlength="5" inputmode="numeric" autocomplete="off"
+                     value="{{ break_form.start_time if break_form else '' }}" required>
+              <div class="invalid-feedback">{{ t.form_time_field_invalid }}</div>
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-semibold" for="endTime">{{ t.form_end_label }}</label>
+              <input id="endTime" type="text" name="end_time"
+                     class="form-control font-monospace time-input"
+                     placeholder="HH:MM" maxlength="5" inputmode="numeric" autocomplete="off"
+                     value="{{ break_form.end_time if break_form else '' }}" required>
+              <div id="timeError" class="invalid-feedback">{{ t.form_time_equal_client }}</div>
+            </div>
+          </div>
+          <div class="form-text text-muted" style="font-size:.8rem">
+            {{ t.form_time_hint }}
+          </div>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ t.btn_cancel }}</button>
+          <button type="submit" class="btn btn-primary px-4">{{ t.btn_add }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  const form    = document.getElementById('addBreakForm');
+  const startEl = document.getElementById('startTime');
+  const endEl   = document.getElementById('endTime');
+  const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+  document.querySelectorAll('.time-input').forEach(function (el) {
+    el.addEventListener('input', function () {
+      let digits = this.value.replace(/\D/g, '').slice(0, 4);
+      this.value = digits.length > 2 ? digits.slice(0, 2) + ':' + digits.slice(2) : digits;
+    });
+  });
+
+  function validateTimes() {
+    const sv = startEl.value, ev = endEl.value;
+    if (sv && !TIME_RE.test(sv)) { startEl.classList.add('is-invalid'); return false; }
+    startEl.classList.remove('is-invalid');
+    if (ev && !TIME_RE.test(ev)) {
+      endEl.classList.add('is-invalid');
+      document.getElementById('timeError').textContent = '{{ t.form_time_field_invalid }}';
+      return false;
+    }
+    const equal = sv && ev && sv === ev;
+    endEl.classList.toggle('is-invalid', equal);
+    if (equal) document.getElementById('timeError').textContent = '{{ t.form_time_equal_client }}';
+    return !equal;
+  }
+
+  startEl.addEventListener('blur', validateTimes);
+  endEl.addEventListener('blur', validateTimes);
+  form.addEventListener('submit', function (e) { if (!validateTimes()) e.preventDefault(); });
+
+  {% if break_error %}
+  new bootstrap.Modal(document.getElementById('addBreakModal')).show();
+  {% endif %}
+</script>
+</body>
+</html>

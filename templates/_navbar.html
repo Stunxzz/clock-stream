@@ -1,0 +1,57 @@
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+  <div class="container-fluid px-3 px-lg-4">
+    <a class="navbar-brand" href="/">{{ t.app_name }}</a>
+
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="mainNav">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+          <a class="nav-link{% if request.url.path == '/' %} active{% endif %}" href="/">
+            {{ t.nav_locations }}
+          </a>
+        </li>
+      </ul>
+
+      <div class="d-flex align-items-center gap-2 me-3">
+        <a href="/lang/bg"
+           class="btn btn-sm {{ 'btn-light fw-bold' if lang == 'bg' else 'btn-outline-secondary' }}">
+          BG
+        </a>
+        <a href="/lang/en"
+           class="btn btn-sm {{ 'btn-light fw-bold' if lang == 'en' else 'btn-outline-secondary' }}">
+          EN
+        </a>
+      </div>
+
+      <div class="dropdown">
+        <button class="user-btn" data-bs-toggle="dropdown" aria-expanded="false">
+          <div class="avatar">{{ t.user_initials }}</div>
+          <div class="d-none d-sm-block text-start lh-sm">
+            <div style="font-size:.88rem; font-weight:600;">{{ t.user_name }}</div>
+            <div style="font-size:.73rem; opacity:.65;">{{ t.user_email }}</div>
+          </div>
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="opacity:.7">
+            <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/>
+          </svg>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow">
+          <li>
+            <div class="d-flex align-items-center gap-2 px-3 py-2">
+              <div class="avatar" style="width:42px;height:42px;font-size:.8rem">{{ t.user_initials }}</div>
+              <div class="lh-sm">
+                <div class="fw-semibold" style="font-size:.9rem">{{ t.user_name }}</div>
+                <div class="text-muted" style="font-size:.78rem">{{ t.user_email }}</div>
+              </div>
+            </div>
+          </li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item" href="#">{{ t.nav_profile }}</a></li>
+          <li><a class="dropdown-item text-danger" href="#">{{ t.nav_signout }}</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</nav>
